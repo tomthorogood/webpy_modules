@@ -16,3 +16,10 @@ def loginUser(username, password, db):
         return True
     else:
         return False
+
+class UserSession(object):
+    def __init__(self, userID, db, app):
+        import web.session
+        store = web.session.DBStore(db, 'sessions')
+        self.session = web.session.Session(app, store, initializer={"user", userID})
+        
