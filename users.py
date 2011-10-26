@@ -2,17 +2,16 @@ class User(object):
     pass
 
 def loginUser(username, password, db):
-    query = "SELECT id,firstName FROM budgetCalculator_Users "
+    query = "SELECT uID,firstName FROM budgetCalculator_Users "
     query += "WHERE email='"+username+"'  and password=PASSWORD('"+password+"')"
     result = db.query(query)
     if result:
         for row in result:
-            uID = row.id
+            uID = row.uID
             name= row.firstName
         from web import setcookie
-        setcookie('username', username)
-        setcookie('id', uID)
-        setcookie('name', name)
+        setcookie('uID', uID)
+        setcookie('first_name', name)
         return True
     else:
         return False
