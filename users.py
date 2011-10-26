@@ -1,6 +1,3 @@
-class User(object):
-    pass
-
 def loginUser(username, password, db):
     query = "SELECT uID,firstName FROM budgetCalculator_Users "
     query += "WHERE email='"+username+"'  and password=PASSWORD('"+password+"')"
@@ -16,9 +13,9 @@ def loginUser(username, password, db):
     else:
         return False
 
-class UserSession(object):
-    def __init__(self, userID, db, app):
-        import web.session
-        store = web.session.DBStore(db, 'sessions')
-        self.session = web.session.Session(app, store, initializer={"user", userID})
-        
+def logged_in():
+    from web import cookies
+    if cookies().uID:
+        return cookies.uID
+    else:
+        return false	    	
