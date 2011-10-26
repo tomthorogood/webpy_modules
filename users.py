@@ -16,6 +16,6 @@ def loginUser(username, password, db):
 def logged_in():
     from web import cookies
     if cookies().uID:
-        return cookies.uID
+        return cookies().uID
     else:
         return false	    	
