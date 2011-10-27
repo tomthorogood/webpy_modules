@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 def retrieve_user_debt (uID, db):
-   query = "SELECT accounts FROM budgetCalculator_Debt "
+   query = "SELECT account_name, balance_due, interest_rate, minimum_payment, extra_payment FROM budgetCalculator_Debt "
    query += "WHERE uID=%s" % (uID)
    result = db.query(query)
 
