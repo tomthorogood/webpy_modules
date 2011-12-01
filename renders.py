@@ -4,12 +4,12 @@ def javascript_insert (base_path, filename_list):
     """Adds JavaScript files into an html page. Files that should be loaded into every page can be added to the "SCRIPTS" list."""
     html = "<!-- SCRIPTS -->\n"
     SCRIPTS = [
-            ("ext", "https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"), #jQuery
-            (base_path, "jquery.forms.js"),                                                #for ajaxSuxmit()
-            ("ext", "http://www.turnleftllc.com/api/tl_forms.js"),                       #TL Forms
+            ("ext", "https://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"),    #jQuery
+            (base_path, "jquery.forms.js"),                                                 #for ajaxSuxmit()
+            ("ext", "http://www.turnleftllc.com/api/tl_forms.js"),                          #TL Forms
+            ("ext", "http://www.turnleftllc.com/api/tl_overlay.js"),                        #for Overlay()
             (base_path, "global.js"),
-            (base_path, "userMenu.js"),
-            (base_path, "overlay.js"),
+            (base_path, "user_menu.js"),
             ]
     
     inclusions = []

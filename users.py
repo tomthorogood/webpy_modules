@@ -1,21 +1,22 @@
-def loginUser(username, password, db):
-    query = "SELECT uID,firstName FROM budgetCalculator_Users "
-    query += "WHERE email='"+username+"'  and password=PASSWORD('"+password+"')"
+def login_user (username, password, db):
+    query = "SELECT user_id, first_name FROM budget_calculator_users "
+    query += "WHERE email='%s' AND password=PASSWORD('%s')" % (username, password)
+
     result = db.query(query)
     if result:
         for row in result:
-            uID = row.uID
-            name= row.firstName
+            user_id = row.user_id
+            first_name = row.first_name
         from web import setcookie
-        setcookie('uID', uID)
-        setcookie('first_name', name)
+        setcookie('user_id', user_id)
+        setcookie('first_name', first_name)
         return True
-    else:
+    else
         return False
 
 def logged_in():
     from web import cookies
-    if cookies().uID:
-        return cookies().uID
+    if cookies().user_id:
+        return cookies().user_id
     else:
         return false	    	
