@@ -1,7 +1,7 @@
 def retrieve_user_income (user_id, db):
     user_income = {}
 
-    query = "SELECT source_id, source_name, source_amount, source_savings FROM budgetCalculator_Income WHERE user_id=%s" % (user_id)
+    query = "SELECT source_id, source_name, source_amount, source_savings FROM budget_calculator_income WHERE user_id=%s" % (user_id)
     result = db.query(query)
 
     if result:

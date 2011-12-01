@@ -11,7 +11,7 @@ def login_user (username, password, db):
         setcookie('user_id', user_id)
         setcookie('first_name', first_name)
         return True
-    else
+    else:
         return False
 
 def logged_in():
