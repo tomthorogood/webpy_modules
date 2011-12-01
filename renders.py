@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def javascript_insert (base_path, filename_list):
+def javascript_insert(base_path="/static/scripts/js/", filename_list=None):
     """Adds JavaScript files into an html page. Files that should be loaded into every page can be added to the "SCRIPTS" list."""
     html = "<!-- SCRIPTS -->\n"
     SCRIPTS = [
@@ -20,12 +20,10 @@ def javascript_insert (base_path, filename_list):
         else:
             path = script[1]
         inclusions.append(path)
-
-    for filename in filename_list:
-        full_path = base_path + filename + ".js"
-        inclusions.append(full_path)
-
-    for script in inclusions:
-        html += "<script type='text/javascript' src='%s'></script>\n" % (script)
-
+    if filename_list:
+        for filename in filename_list:
+            full_path = base_path + filename + ".js"
+            inclusions.append(full_path)
+        for script in inclusions:
+            html += "<script type='text/javascript' src='%s'></script>\n" % (script)
     return html
