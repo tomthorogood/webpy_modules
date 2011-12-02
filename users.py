@@ -1,6 +1,10 @@
 def login_user (username, password, db):
+    import modules.security.hash_this as hash_this
+    username = hash_this(username)
+    password = hash_this(password)
+
     query = "SELECT user_id, first_name FROM budget_calculator_users "
-    query += "WHERE email='%s' AND password=PASSWORD('%s')" % (username, password)
+    query += "WHERE email=PASSWORD('%s') AND password=PASSWORD('%s')" % (username, password)
 
     result = db.query(query)
     if result:
@@ -19,4 +23,23 @@ def logged_in():
     if cookies().user_id:
         return cookies().user_id
     else:
-        return false	    	
+        return false
+
+def register_user():
+    import web
+    import modules.security
+    import modules.database
+    i = web.input()
+    username = modules.security.hash_this(i.username)
+    password = moduules.security.hash_this(i.password)
+
+    query_string = "INSERT INTO budget_calculator_users (email, first_name, last_name, password)"
+    query_string += " VALUES ("
+    query_string += " PASSWORD('%s'), '%s', '%s', PASSWORD('%s') )" % (username, i.first_name, i.last_name, password)
+    
+    try:
+        db = modules.database.connect_to_database()
+        db.query(query_string)
+        return True
+    except:
+        return False
