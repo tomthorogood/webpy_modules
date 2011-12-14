@@ -18,7 +18,7 @@ class Database(object):
 
     def query(self, query_string):
         return self.connection.query(query_string)
-
+    
     def populate_from(self, key, dictionary):
         values = []
         for entry in dictionary:
@@ -45,7 +45,23 @@ class Database(object):
         query_string = append_with_commas(query_string, columns, ") VALUES (", False)
         query_string = append_with_commas(query_string, values, ")", True)
         self.query(query_string)
-        return query_string
+
+    def update(self, data, col_match, val_match):
+        query_string = "UPDATE %s SET " % self.table
+        cols=[]
+        vals=[]
+        for key in data:
+            columns.append(key)
+            if data[key]:
+                vals.append(data[key])
+            else:
+                vals.append("")
+        i = 0
+        while i < len(cols):
+            query_string + " %s=\"%s\" " % (cols[i], vals[i])
+        query_string += "WHERE %s=\"%s\" " % (col_match, val_match)
+        self.query(query_string)
+
 
 
 class Search(object):
@@ -135,42 +151,95 @@ class User(object):
          if self.check_login(): 
              query_string = "SELECT user_id FROM %s where session_id = %s" % (self.session.db.table, self.key)
              result = self.db.query(query_string)
-             for row in result:
-                 return row.user_id
+             if result:
+                 for row in result:
+                     return row.user_id
+             else:
+                 return False
 
-    def get_debt (self):
-        """Creates self.debt, a list of dicts returned from the Search() class."""
-        key_request = self.get_id()
-        cipher = Cipher(key_request)
-        self.debt = []
-        columns = ["account_id", "account_name", "account_balance", "account_interest_rate", "account_monthly_payment", "account_extra_payment"]
-        floats = ["account_balance", "account_interest_rate", "account_monthly_payment", "account_extra_payment"]
-        search = Search("debt", "user_id", key_request, columns)
+    def link_debt (self):
+        self.debt = Debt_Account(self.get_id())
+
+    def link_income(self):
+        self.income = Income_Source(self.get_id())
+
+class Money(object):
+    def __init__(self, user_id, table):
+        self.__user_id = user_id
+        self.__db = Database(table)
+        self.accounts = []
+        self.__schematic = {}
+
+    def __account_schematic (self, schematic):
+        self.__schematic = schematic
+
+    def __column_list(self):
+        a = []
+        if self.__schematic:
+            for entry in self.__schematic:
+                a.append(entry)
+        return a
+
+    def __float_values(self):
+        a = []
+        if self.__schematic:
+            for entry in self.__schematic:
+                if self.__schematic[entry] == "float":
+                    a.append(entry)
+        return a
+
+    def __encrypt_values(self, values):
+        cipher = Cipher(self.__user_id)
+        for value in values:
+            values[value] = cipher.encrypt(values[value])
+        return values
+
+    def get_accounts(self):
+        cipher = Cipher(self.__user_id)
+        search = Search(self.__db.table, "user_id", self.__user_id, self.__column_list())
         search.run()
         for result in search.result:
             account = {}
             for datum in result:
-                if datum not in floats:
+                if datum not in self.__float_values():
                     account[datum] = cipher.decrypt( result[datum] )
-                elif datum in floats:
-                    account[datum] = float(cipher.decrypt(result[datum]) )
-            self.debt.append(account)
+                elif datum in self.__float_values():
+                    account[datum] = float( cipher.decrypt( result[datum] ) )
+            self.accounts.append(account)
 
-    def get_income(self):
-        """Creates self.income, a list of dicts return from the Search() class."""
-        key_request = self.get_id()
-        cipher = Cipher(key_request)
-        self.income = []
-        columns = ("source_id", "source_name", "source_amount", "source_savings")
-        floats = ("source_amount", "source_savings")
-        search = Search("income", "user_id", key_request, columns)
-        search.run()
-        for result in search.result:
-            source = {}
-            for datum in result:
-                if datum not in floats:
-                    source[datum] = cipher.decrypt( result[datum] )
-                elif datum in floats:
-                    source[datum] = float( cipher.decrypt( result[datum] ) )
-            self.income.append(source)
+    def add_account(self, account):
+        account = self.__encrypt_values(account)
+        account['user_id'] = self.__account_schematic['user_id']
+        self.__db.insert(account)
 
+    def update_account(self, account_info):
+        self.__db.update(self.__encrypt_values(account_info), "user_id", self.__user_id)
+
+    def delete_acount(self, col, val):
+        query_string = "DELETE FROM %s WHERE %s = \"%s\"" % (self.__db.table, col, val)
+        self.__db.query(query_string)
+
+class Debt_Account(Money):
+    def __init__(self, user_id):
+        Money.__init__(user_id, "debt")
+        schematic = {
+                "account_name"          :   "string",
+                "account_balance"       :   "float",
+                "account_interest_rate" :   "float",
+                "account_min_payment"   :   "float",
+                "account_extra_payment" :   "float",
+                "account_id"            :   "int",
+                "user_id"               :   user_id
+                }
+        self.__account_schematic(schematic)
+
+class Income_Source(Money):
+    def __init__(self, user_id):
+        Money.__init__(user_id, "income")
+        schematic = {
+                "source_name"           :   "string",
+                "source_amount"         :   "float",
+                "source_savings"        :   "float",
+                "user_id"               :   "user_id"
+                }
+        self.__account_schematic(schematic)
