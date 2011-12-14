@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import web
 import formatting
-import security
+import security.obfuscate
+import security.cipher
 import random
 import string
-import security.cipher
 
 append_with_commas = formatting.append_with_commas
 hash_this = security.obfuscate.hash_this
@@ -152,7 +152,7 @@ class User(object):
             for datum in result:
                 if datum not in floats:
                     account[datum] = cipher.decrypt( result[datum] )
-                else if datum in floats:
+                elif datum in floats:
                     account[datum] = float(cipher.decrypt(result[datum]) )
             self.debt.append(account)
 
@@ -170,7 +170,7 @@ class User(object):
             for datum in result:
                 if datum not in floats:
                     source[datum] = cipher.decrypt( result[datum] )
-                else if datum in floats:
+                elif datum in floats:
                     source[datum] = float( cipher.decrypt( result[datum] ) )
             self.income.append(source)
 
