@@ -22,15 +22,17 @@ class Cipher(object):
     def _trim (self, string):
         temp = string
         while string[len(temp)-1] == " ":
-            temp = string[:len(temp)-2]
+            temp = string[:len(temp)-1]
         return temp
 
     def encrypt (self, plaintext):
         ciphertext = self._algorithm.encrypt( self._pad(plaintext) )
         asciitext = binascii.b2a_uu(ciphertext)
-        return asciitext.replace('$', 'DOLLARSIGN')
+        noslashes = asciitext.replace("\\", "SLASH")
+        return noslashes.replace('$', 'DOLLARSIGN')
 
     def decrypt (self, workaround):
-        asciitext = workaround.replace('DOLLARSIGN', '$')
+        asciitext = workaround.replace("SLASH", "\\")
+        asciitext = asciitext.replace('DOLLARSIGN', '$')
         ciphertext = binascii.a2b_uu(asciitext)
         return self._trim ( self._algorithm.decrypt(ciphertext) )
