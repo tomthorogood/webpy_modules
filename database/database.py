@@ -13,7 +13,7 @@ Cipher = security.cipher.Cipher
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
     def __init__(self, table):
-        self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db='clearpoint')
+        self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db='clearpoint_budget_calc')
         self.table = table
 
     def query(self, query_string):
@@ -51,15 +51,18 @@ class Database(object):
         cols=[]
         vals=[]
         for key in data:
-            columns.append(key)
+            cols.append(key)
             if data[key]:
                 vals.append(data[key])
             else:
                 vals.append("")
         i = 0
         while i < len(cols):
-            query_string + " %s=\"%s\" " % (cols[i], vals[i])
-        query_string += "WHERE %s=\"%s\" " % (col_match, val_match)
+            print cols[i]
+            query_string += " %s=\"%s\" " % (cols[i], vals[i])
+            i+=1
+        query_string += "WHERE %s='%s' " % (col_match, val_match)
+        print query_string
         self.query(query_string)
 
 
@@ -142,10 +145,21 @@ class User(object):
             return False
 
     def add(self, username, password):
+        email = username
         username = hash_this(username)
         password = hash_this(password)
         query_string = "INSERT INTO %s (username, password) VALUES (PASSWORD('%s'), PASSWORD('%s'))" % (self.db.table, username, password)
-        self.db.query(query_string)
+        self.db.query(query_string) 
+        query_string = "SELECT username,user_id FROM %s WHERE %s=PASSWORD('%s')" % (self.db.table, "username", username)
+        result = self.db.query(query_string)
+        user_id = ""
+        key_request = ""
+        for row in result:
+            user_id = row['user_id']
+            key_request = row['username']
+        cipher = Cipher(key_request)
+        encrypted_email = cipher.encrypt(email)
+        self.db.update({'email_address' : encrypted_email}, 'user_id', user_id)
 
     def get_id (self):
          if self.check_login(): 
