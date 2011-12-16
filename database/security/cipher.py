@@ -1,4 +1,5 @@
 from Crypto.Cipher import AES
+import binascii
 
 class Cipher(object):
     def __init__(self, key_request):
@@ -24,8 +25,12 @@ class Cipher(object):
             temp = string[:len(temp)-2]
         return temp
 
-    def encrypt (self, string):
-        return self._algorithm.encrypt( self._pad(string) )
+    def encrypt (self, plaintext):
+        ciphertext = self._algorithm.encrypt( self._pad(plaintext) )
+        asciitext = binascii.b2a_uu(ciphertext)
+        return asciitext.replace('$', 'DOLLARSIGN')
 
-    def decrypt (self, string):
-        return self._trim ( self._algorithm.decrypt(string) )
+    def decrypt (self, workaround):
+        asciitext = workaround.replace('DOLLARSIGN', '$')
+        ciphertext = binascii.a2b_uu(asciitext)
+        return self._trim ( self._algorithm.decrypt(ciphertext) )
