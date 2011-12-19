@@ -1,5 +1,4 @@
-import security
-import security.obfuscate
-import security.cipher
+#!/usr/bin/env python
 
+import security
 import database

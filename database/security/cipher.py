@@ -23,16 +23,11 @@ class Cipher(object):
         temp = string
         while string[len(temp)-1] == " ":
             temp = string[:len(temp)-1]
-        return temp
+        return temp.split(" ")[0]
 
     def encrypt (self, plaintext):
         ciphertext = self._algorithm.encrypt( self._pad(plaintext) )
-        asciitext = binascii.b2a_uu(ciphertext)
-        noslashes = asciitext.replace("\\", "SLASH")
-        return noslashes.replace('$', 'DOLLARSIGN')
+        return ciphertext
 
-    def decrypt (self, workaround):
-        asciitext = workaround.replace("SLASH", "\\")
-        asciitext = asciitext.replace('DOLLARSIGN', '$')
-        ciphertext = binascii.a2b_uu(asciitext)
-        return self._trim ( self._algorithm.decrypt(ciphertext) )
+    def decrypt (self, ciphertext):
+         return self._trim ( self._algorithm.decrypt(ciphertext) )

@@ -9,6 +9,8 @@ import string
 append_with_commas = formatting.append_with_commas
 hash_this = security.obfuscate.hash_this
 Cipher = security.cipher.Cipher
+Querify = web.db.SQLQuery
+Paramify = web.db.SQLParam
 
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
@@ -16,8 +18,12 @@ class Database(object):
         self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db='clearpoint_budget_calc')
         self.table = table
 
-    def query(self, query_string):
-        return self.connection.query(query_string)
+    def query(self, q):
+        if not isinstance(q, list):
+            q = Querify([q])
+        else:
+            q = Querify(q)
+        return self.connection.query(q)
     
     def populate_from(self, key, dictionary):
         values = []
@@ -46,8 +52,10 @@ class Database(object):
         query_string = append_with_commas(query_string, values, ")", True)
         self.query(query_string)
 
-    def update(self, data, col_match, val_match):
-        query_string = "UPDATE %s SET " % self.table
+    def update(self, data, col_match, val_match, test=False):
+        query_list = []
+        q0 = "UPDATE %s SET " % self.table
+        query_list.append(q0)
         cols=[]
         vals=[]
         for key in data:
@@ -58,14 +66,17 @@ class Database(object):
                 vals.append("")
         i = 0
         while i < len(cols):
-            print cols[i]
-            query_string += " %s=\"%s\" " % (cols[i], vals[i])
+            query_list.append(cols[i]+'=')
+            query_list.append(Paramify(vals[i]))
+            if i <= len(cols)-2:
+                query_list.append(', ')
             i+=1
-        query_string += "WHERE %s='%s' " % (col_match, val_match)
-        print query_string
-        self.query(query_string)
-
-
+        query_list.append(" WHERE " + col_match +"=")
+        query_list.append(Paramify(val_match))
+        if not test:
+            self.query(query_list)
+        else:
+            print Querify(query_list)
 
 class Search(object):
     """A quick way of searching a database. The result will be stored as a list of dicts, each representing a row of data
