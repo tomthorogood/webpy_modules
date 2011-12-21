@@ -160,6 +160,10 @@ class User(object):
                 else:
                     l = prefs[i].split('set ')
                     self.preferences[i] = ' '.join(l)[1:]
+                    if self.preferences[i] == 'True':
+                        self.preferences[i] = True
+                    elif self.preferences[i] == 'False':
+                        self.preferences[i] = False
 
     def login (self, username, password):
         q = ["SELECT user_id FROM ", self.db.table, " WHERE username=PASSWORD(", Paramify(hash_this(username)), ") AND password=PASSWORD(", Paramify(hash_this(password)), ")"]
