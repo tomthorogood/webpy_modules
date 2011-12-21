@@ -131,12 +131,13 @@ class Session(object):
             return False
 
 class User(object):
-    def __init__(self):
+    def __init__(self, preferences = {}):
         self.db = Database('users')
+        define (preferences)
     
     def __define__(self, prefs):
         self.preferences = {}
-        if self.check_login():
+        if self.check_login() and prefs:
             for i in prefs:
                 if prefs[i].lower() == "checkdb":
                     q = []
