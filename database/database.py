@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+#Non-native libraries
 import web
-import formatting
-import security.obfuscate
-import security.cipher
-import random
-import string
+#Self-created libraries
+import formatting, security
+#Native libraries
+import random, string
 
 append_with_commas = formatting.append_with_commas
 hash_this = security.obfuscate.hash_this
@@ -134,6 +134,19 @@ class User(object):
     def __init__(self):
         self.db = Database('users')
     
+    def __define__(self, prefs):
+        self.preferences = {}
+        if self.check_login():
+            for i in prefs:
+                if prefs[i].lower() == "checkdb":
+                    q = []
+                    q[0] = "SELECT %s FROM %s" % (i, self.db.table)
+                    q[1] = " WHERE %s=%s" % ('user_id', Paramify(self.get_id() ))
+                    self.preferences[i] = self.db.query(q)[0][i]
+                else:
+                    l = prefs[i].split('set ')
+                    self.preferences[i] = ' '.join(l)[1:]
+
     def login (self, username, password):
         query_string = "SELECT user_id from %s WHERE username=PASSWORD('%s') AND password=PASSWORD('%s')" % (self.db.table, hash_this(username), hash_this(password))
         result = self.db.query(query_string)
@@ -187,6 +200,7 @@ class User(object):
 
     def link_income(self):
         self.income = Income_Source(self.get_id())
+
 
 class Money(object):
     def __init__(self, user_id, table):
