@@ -1,24 +1,34 @@
 #!/usr/bin/env python
 #Non-native libraries
 import web
+
 #Self-created libraries
 import formatting, security
+
 #Native libraries
 import random, string
 
-append_with_commas = formatting.append_with_commas
-hash_this = security.obfuscate.hash_this
-Cipher = security.cipher.Cipher
-Querify = web.db.SQLQuery
-Paramify = web.db.SQLParam
+append_with_commas = formatting.append_with_commas  # Turns a list into "entry1, entry2, entry3" string
+hash_this = security.obfuscate.hash_this            # Performs one-way hashing on a string
+Cipher = security.cipher.Cipher                     # Creates an instance of a PyCrypto AES module
+Querify = web.db.SQLQuery                           # Paramaterizes a query string
+Paramify = web.db.SQLParam                          # Paramterizes a query string value to maintain binary integrity
+
+# NOTE: When using the Database.query() method, you do not need to Querify a list; the method does this implicitly if
+# a list is passed to it. HOWEVER, you should pass any values in the list as a Paramified version:
+# ["SELECT foo FROM bar WHERE meat=", Paramify('steak')]
 
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
-    def __init__(self, table):
-        self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db='clearpoint_budget_calc')
+    def __init__(self, table, db='clearpoint_budget_calc'):
+        self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db=db)
         self.table = table
 
     def query(self, q):
+        """
+        Checks to see if the query passed into the method is a list. If so, Querifies the list.
+        If it's a string, querifies a list where the string is the only entry.
+        """
         if not isinstance(q, list):
             q = Querify([q])
         else:
@@ -26,31 +36,34 @@ class Database(object):
         return self.connection.query(q)
     
     def populate_from(self, key, dictionary):
+        """
+        Populates a dictionary whose keys are columns in the database.
+        The dictionary values are then set to the values in the database columns.
+        """
         values = []
         for entry in dictionary:
             values.append(entry)
-        query_string = "SELECT "
-        query_string = append_with_commas(query_string, values, " FROM ", False)
-        query_string += "%s WHERE %s=\"%s\"" % (self.table, key[0], key[1])
-        result = self.query(query_string)
+        q = [append_with_commas('SELECT ', values, 'FROM ', False), self.table, ' WHERE ', key[0], '=', Paramify(key[1])]
+        result = self.query(q)
         if result:
             for row in result:
                 for entry in dictionary:
                     dictionary[entry] = row[entry]
         return dictionary
+
     def insert (self, data ):
-        query_string = "INSERT INTO %s (" % self.table
+        q = ["INSERT INTO ", self.table]
         columns = []
         values = []
         for key in data:
             columns.append(key)
             if data[key]:
-                values.append(data[key])
+                values.append(Paramify(data[key]))
             else:
                 values.append('')
-        query_string = append_with_commas(query_string, columns, ") VALUES (", False)
-        query_string = append_with_commas(query_string, values, ")", True)
-        self.query(query_string)
+        q.append( append_with_commas('', columns, ") VALUES (", False) )
+        q.append( append_with_commas(query_string, values, ")", True) )
+        self.query(q)
 
     def update(self, data, col_match, val_match, test=False):
         query_list = []
@@ -149,11 +162,11 @@ class User(object):
                     self.preferences[i] = ' '.join(l)[1:]
 
     def login (self, username, password):
-        query_string = "SELECT user_id from %s WHERE username=PASSWORD('%s') AND password=PASSWORD('%s')" % (self.db.table, hash_this(username), hash_this(password))
-        result = self.db.query(query_string)
+        q = ["SELECT user_id FROM ", self.db.table, " WHERE username=PASSWORD(", Paramify(hash_this(username)), ") AND password=PASSWORD(", Paramify(hash_this(password)), ")"]
+        result = self.db.query(q)
         user_id = None
-        for row in result:
-            user_id = row.user_id
+        if result:
+            user_id = result[0].user_id
         if user_id:
             session = Session(user_id = user_id)
             self.error = None
@@ -173,21 +186,23 @@ class User(object):
         email = username
         username = hash_this(username)
         password = hash_this(password)
-        query_string = "INSERT INTO %s (username, password) VALUES (PASSWORD('%s'), PASSWORD('%s'))" % (self.db.table, username, password)
-        self.db.query(query_string) 
-        query_string = "SELECT username,user_id FROM %s WHERE %s=PASSWORD('%s')" % (self.db.table, "username", username)
-        result = self.db.query(query_string)
+        q = ["INSERT INTO ", self.db.table, "(username, password) VALUES (PASSSWORD(", Paramify(username), "),PASSWORD(", Paramify(password), ")"]
+        self.db.query(q) 
+        q = ["SELECT username, user_id FROM ", self.db.table, " WHERE username = PASSWORD(", Paramify(username), ")"]
+        result = self.db.query(q)
         user_id = ""
         key_request = ""
-        for row in result:
-            user_id = row['user_id']
-            key_request = row['username']
-        cipher = Cipher(key_request)
-        encrypted_email = cipher.encrypt(email)
-        self.db.update({'email_address' : encrypted_email}, 'user_id', user_id)
+        if result:
+            user_id = result[0]['user_id']
+            key_request = result[0]['username']
+            cipher = Cipher(key_request)
+            encrypted_email = cipher.encrypt(email)
+            self.db.update({'email_address' : encrypted_email}, 'user_id', user_id)
+        else:
+            self.error = "We're sorry, but you could not be added to the database. Please try again later."
 
     def get_id (self):
-         if self.check_login(): 
+         if self.check_login():
              query_string = "SELECT user_id FROM %s where session_id = %s" % (self.session.db.table, self.key)
              result = self.db.query(query_string)
              if result:
