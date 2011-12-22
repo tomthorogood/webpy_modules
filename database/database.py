@@ -221,6 +221,19 @@ class User(object):
     def link_income(self):
         self.income = Income_Source(self.get_id())
 
+<<<<<<< HEAD
+=======
+    def exists(self, val):
+        """
+        Checks to see whether a username already exists in the database.
+        """
+        q = ["SELECT username FROM %s " % self.db.table, "WHERE username = PASSWORD('%s')" % Paramify(hash_this(val))]
+        r = self.db.query(q)
+        if not r or r[0].username != val:
+            return False
+        else:
+            return True
+>>>>>>> dec22
 
 class Money(object):
     def __init__(self, user_id, table):
