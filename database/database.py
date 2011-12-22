@@ -221,7 +221,6 @@ class User(object):
     def link_income(self):
         self.income = Income_Source(self.get_id())
 
-<<<<<<< .merge_file_2WCLy5
     def exists(self, val):
         """
         Checks to see whether a username already exists in the database.
@@ -232,8 +231,6 @@ class User(object):
             return False
         else:
             return True
-=======
->>>>>>> .merge_file_2xrJx2
 
 class Money(object):
     def __init__(self, user_id, table):
