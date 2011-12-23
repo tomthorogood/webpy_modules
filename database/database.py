@@ -146,7 +146,7 @@ class Session(object):
 class User(object):
     def __init__(self, preferences = {}):
         self.db = Database('users')
-        __define__ (preferences)
+        self.__define__ (preferences)
     
     def __define__(self, prefs):
         self.preferences = {}
