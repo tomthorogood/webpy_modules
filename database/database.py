@@ -146,7 +146,7 @@ class Session(object):
 class User(object):
     def __init__(self, preferences = {}):
         self.db = Database('users')
-        define (preferences)
+        __define__ (preferences)
     
     def __define__(self, prefs):
         self.preferences = {}
@@ -221,8 +221,6 @@ class User(object):
     def link_income(self):
         self.income = Income_Source(self.get_id())
 
-<<<<<<< HEAD
-=======
     def exists(self, val):
         """
         Checks to see whether a username already exists in the database.
@@ -233,7 +231,22 @@ class User(object):
             return False
         else:
             return True
->>>>>>> dec22
+
+    def match_password(self, val):
+        """
+        Checks to see whether the passed password matches that which is attached to the currently logged in user.
+        """
+        q = ['SELECT %s FROM %s' % ('password', self.db.table)]
+        try:
+            q[1] = " WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this(self.get_id() ) ) )
+            return self.db.query(q)[0].password == val
+        except:
+            return False
+
+    def update_password(self, new):
+        q = ['UPDATE %s SET %s=PASSWORD(%s)' % (self.db.table, 'password', Paramify(hash_this(new)))]
+        q[1] = "WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this( self.get_id() ) ) )
+        self.db.query(q)
 
 class Money(object):
     def __init__(self, user_id, table):
