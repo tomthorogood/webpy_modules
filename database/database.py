@@ -20,8 +20,8 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
-    def __init__(self, table, db='clearpoint_budget_calc'):
-        self.connection = web.database(dbn='mysql', user='clearpoint', pw='', db=db)
+    def __init__(self, table, db='clearpoint_resolutions'):
+        self.connection = web.database(dbn='mysql', user='cpres', pw='allayallay', db=db)
         self.table = table
 
     def query(self, q):
@@ -90,6 +90,32 @@ class Database(object):
             self.query(query_list)
         else:
             print Querify(query_list)
+    
+    def delete(self, match=None, param=None, force=False):
+        """
+        Deletes data from a table. 
+        db.delete( match=('username', 'test_user')) // Will delete entries from a table where the username is "test_user".
+        db.delete( match=('username', 'test_user'), param="AND email_address IS NULL") //same as above, but where no email address exists
+        db.delete( match=('username', '*test_user') ) //performs a mysql Password() hash on 'test_user' first.
+        db.delete( match=(1,1), force=True ) //will delete all entries from a table 
+        """
+        try:
+            q = ["DELETE FROM %s WHERE " %  self.table]
+            if match:
+                if match[0] == match[1] and not force:
+                    raise UserWarning #Prevents an accidental deletion of all entries in table. 
+                q[1] = "%s = " % match[0]
+                if match[1][0] == '*':
+                    q[2] = "PASSWORD(%s)" % Paramify(match[1][1:])
+                else:
+                    q[2] = Paramify(match[1])
+            if param:
+                q[len(q)] = param
+            if (len(q) > 1):
+                self.query(q)
+        except UserWarning:
+            print "You are trying to delete all entries in a table without explicitly forcing this! Try setting force=True if that's what you really want to do."
+
 
 class Search(object):
     """A quick way of searching a database. The result will be stored as a list of dicts, each representing a row of data
@@ -117,11 +143,35 @@ class Search(object):
             self.result.append(branch.data)
 
 class Session(object):
-    def __init__(self, new = True, user_id = None, session_id = None):
+    """
+    This defines a user session. 
+    usage:
+        s = Session(new=False)
+            Calling this way will simply attempt to find the user's session ID stored in their cookie.
+        s = Session(user_id='foobar')
+            Instantiating in this manner will generate a new session_id, store in the database table, and set a local cookie.
+        s = Session(new=False, length=600).cleanup()
+            This will cleanup the database table, deleting sessions that have been inactive for more then 10 minutes.
+            This can also be accomplished by setting length=10, as the class assumes values less than 60 are intended to be minutes.
+        s = Session(new=False, user_id='foobar', length=600).cleanup()
+            Same as above, but this will only run if there is a local cookie stored and it is attributed to the user 'foobar'.
+    """
+    def __init__(self, new = True, user_id = None, session_id = None, length=1200):
         self.db = Database('sessions')
+        self._id = session_id
+        if length < 60:
+            self.length = length * 60   # length is set in seconds; if someone passes a length of less than 60 seconds, assume they attempted to pass minutes
+        else:                           # and multiply the passed number by 60. Default is 20 minutes (1200 seconds) 
+            self.length = length
         if new and user_id:
             self._id = self.generate_id(user_id)
             self.store_session(user_id)
+        elif not new and user_id:
+            self._id = self.get_cookie()
+            if not self._id:
+                raise UserWarning
+        elif not new and not user_id:
+            self._id = False
             
     def generate_id(self, user_id):
         pre_hash = ""
@@ -131,8 +181,10 @@ class Session(object):
         return hash_this(pre_hash)
 
     def store_session(self, user_id):
-        query_string = "INSERT INTO %s (session_id, user_id) VALUES ('%s', '%s')" % (self.db.table, self._id, user_id)
-        self.db.query(query_string)
+        q = ["INSERT INTO %s (session_id, user_id) VALUES (" % self.db.table]
+        q[1] = "%s, %s" % ( Paramify(self._id), Paramify(user_id) )
+        q[2] = ")"
+        self.db.query(q)
 
     def set_cookie(self):
         web.setcookie('session_id', self._id)
@@ -142,6 +194,35 @@ class Session(object):
             return web.cookies().session_id
         except:
             return False
+
+    def ping(self):
+        """
+        Pings a user session to keep it active. Every 100 pings will clean up the session table.
+        usage: 
+            sesh = Session(new=False, user_id='foo')
+            sesh.ping()
+            
+            The above code retrieves the cookie on the local machine, ensures the user_id is valid for the session_id, and updates the session
+            to keep it active.
+        """
+        p = 1
+        q = "SELECT ping FROM %s ORDER BY ping DESC LIMIT 1" % self.db.table
+        r = self.db.query(q)
+        if r:
+            p = int(r[0].ping)
+        if p > 100:
+            p = 1
+            self.db.update({"ping" : p}, "session_id", self._id)
+            self.cleanup()
+        else:
+            self.db.update({"ping" : p}, "session_id", self._id)
+
+    def cleanup(self):
+        """
+        Cleans up the session database table. Called automatically every 100 pings, but can be called explicitly if necessary.
+        """
+        param = "NOW() - last_activity) > %s" % self.length
+        self.db.delete(param=param)
 
 class User(object):
     def __init__(self, preferences = {}):
@@ -190,15 +271,16 @@ class User(object):
         email = username
         username = hash_this(username)
         password = hash_this(password)
-        q = ["INSERT INTO ", self.db.table, "(username, password) VALUES (PASSSWORD(", Paramify(username), "),PASSWORD(", Paramify(password), ")"]
+        q = ["INSERT INTO ", self.db.table, "(username, password) VALUES (PASSWORD(", Paramify(username), "),PASSWORD(", Paramify(password), "))"]
         self.db.query(q) 
         q = ["SELECT username, user_id FROM ", self.db.table, " WHERE username = PASSWORD(", Paramify(username), ")"]
         result = self.db.query(q)
         user_id = ""
         key_request = ""
         if result:
-            user_id = result[0]['user_id']
-            key_request = result[0]['username']
+            r = result[0]
+            user_id = r['user_id']
+            key_request = r['username']
             cipher = Cipher(key_request)
             encrypted_email = cipher.encrypt(email)
             self.db.update({'email_address' : encrypted_email}, 'user_id', user_id)
@@ -227,7 +309,7 @@ class User(object):
         """
         q = ["SELECT username FROM %s " % self.db.table, "WHERE username = PASSWORD('%s')" % Paramify(hash_this(val))]
         r = self.db.query(q)
-        if not r or r[0].username != val:
+        if not r:
             return False
         else:
             return True
@@ -300,7 +382,7 @@ class Money(object):
     def update_account(self, account_info):
         self.__db.update(self.__encrypt_values(account_info), "user_id", self.__user_id)
 
-    def delete_acount(self, col, val):
+    def delete_account(self, col, val):
         query_string = "DELETE FROM %s WHERE %s = \"%s\"" % (self.__db.table, col, val)
         self.__db.query(query_string)
 
