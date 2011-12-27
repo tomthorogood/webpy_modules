@@ -18,6 +18,7 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 # a list is passed to it. HOWEVER, you should pass any values in the list as a Paramified version:
 # ["SELECT foo FROM bar WHERE meat=", Paramify('steak')]
 
+
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
     def __init__(self, table, db='clearpoint_resolutions'):
@@ -33,6 +34,7 @@ class Database(object):
             q = Querify([q])
         else:
             q = Querify(q)
+        
         return self.connection.query(q)
     
     def populate_from(self, key, dictionary):
@@ -100,7 +102,7 @@ class Database(object):
         db.delete( match=(1,1), force=True ) //will delete all entries from a table 
         """
         try:
-            q = ["DELETE FROM %s WHERE " %  self.table]
+            q = ["DELETE FROM %s WHERE " %  self.table,'','']
             if match:
                 if match[0] == match[1] and not force:
                     raise UserWarning #Prevents an accidental deletion of all entries in table. 
@@ -181,8 +183,9 @@ class Session(object):
         return hash_this(pre_hash)
 
     def store_session(self, user_id):
-        q = ["INSERT INTO %s (session_id, user_id) VALUES (" % self.db.table]
-        q[1] = "%s, %s" % ( Paramify(self._id), Paramify(user_id) )
+        q = ['','','']
+        q[0] = "INSERT INTO %s (session_id, user_id) VALUES (" % self.db.table
+        q[1] = "\"%s\", %s" % ( Paramify(self._id), Paramify(user_id) )
         q[2] = ")"
         self.db.query(q)
 
@@ -234,7 +237,7 @@ class User(object):
         if self.check_login() and prefs:
             for i in prefs:
                 if prefs[i].lower() == "checkdb":
-                    q = []
+                    q = ['','']
                     q[0] = "SELECT %s FROM %s" % (i, self.db.table)
                     q[1] = " WHERE %s=%s" % ('user_id', Paramify(self.get_id() ))
                     self.preferences[i] = self.db.query(q)[0][i]
@@ -318,7 +321,7 @@ class User(object):
         """
         Checks to see whether the passed password matches that which is attached to the currently logged in user.
         """
-        q = ['SELECT %s FROM %s' % ('password', self.db.table)]
+        q = ['SELECT %s FROM %s' % ('password', self.db.table),'']
         try:
             q[1] = " WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this(self.get_id() ) ) )
             return self.db.query(q)[0].password == val
@@ -326,7 +329,7 @@ class User(object):
             return False
 
     def update_password(self, new):
-        q = ['UPDATE %s SET %s=PASSWORD(%s)' % (self.db.table, 'password', Paramify(hash_this(new)))]
+        q = ['UPDATE %s SET %s=PASSWORD(%s)' % (self.db.table, 'password', Paramify(hash_this(new))),'']
         q[1] = "WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this( self.get_id() ) ) )
         self.db.query(q)
 
