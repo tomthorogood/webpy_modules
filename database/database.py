@@ -290,15 +290,20 @@ class User(object):
         else:
             self.error = "We're sorry, but you could not be added to the database. Please try again later."
 
-    def get_id (self):
+    def get_id (self, plain=False):
          if self.check_login():
              query_string = "SELECT user_id FROM %s where session_id = %s" % (self.session.db.table, self.key)
-             result = self.db.query(query_string)
-             if result:
-                 for row in result:
-                     return row.user_id
-             else:
+             user_id = self.db.query(query_string)[0].user_id
+             if user_id and not plain:
+                 return user_id
+             elif not user_id:
                  return False
+             elif user_id and plain:
+                 q = ['SELECT username,email_address FROM %s WHERE user_id = %s' % (self.db.table, user_id)]
+                 row = self.db.query(q)[0]
+                 key = row.username
+                 cipher = Cipher(key)
+                 return cipher.decrypt(row.email_address)
 
     def link_debt (self):
         self.debt = Debt_Account(self.get_id())
