@@ -108,7 +108,7 @@ class Database(object):
                     raise UserWarning #Prevents an accidental deletion of all entries in table. 
                 q[1] = "%s = " % match[0]
                 if match[1][0] == '*':
-                    q[2] = "PASSWORD(%s)" % Paramify(match[1][1:])
+                    q[2] = "PASSWORD(\"%s\")" % Paramify(match[1][1:])
                 else:
                     q[2] = Paramify(match[1])
             if param:
@@ -135,7 +135,7 @@ class Search(object):
             values.append(key)
         value = value.replace("%20", " ") #A workaround for parsing a URL encoded value
         query_string = append_with_commas("SELECT ", values, " FROM ", False)
-        query_string += self.db.table + " WHERE %s=\"%s\"" % (column, value)
+        query_string += self.db.table + " WHERE %s= '%s'" % (column, Paramify(value))
         return query_string
 
     def run(self):
@@ -185,7 +185,7 @@ class Session(object):
     def store_session(self, user_id):
         q = ['','','']
         q[0] = "INSERT INTO %s (session_id, user_id) VALUES (" % self.db.table
-        q[1] = "\"%s\", %s" % ( Paramify(self._id), Paramify(user_id) )
+        q[1] = "\"%s\", '%s'" % ( Paramify(self._id), Paramify(user_id) )
         q[2] = ")"
         self.db.query(q)
 
@@ -239,7 +239,7 @@ class User(object):
                 if prefs[i].lower() == "checkdb":
                     q = ['','']
                     q[0] = "SELECT %s FROM %s" % (i, self.db.table)
-                    q[1] = " WHERE %s=%s" % ('user_id', Paramify(self.get_id() ))
+                    q[1] = " WHERE %s='%s'" % ('user_id', Paramify(self.get_id() ))
                     self.preferences[i] = self.db.query(q)[0][i]
                 else:
                     l = prefs[i].split('set ')
@@ -292,14 +292,14 @@ class User(object):
 
     def get_id (self, plain=False):
          if self.check_login():
-             query_string = "SELECT user_id FROM %s where session_id = %s" % (self.session.db.table, self.key)
+             query_string = "SELECT user_id FROM %s where session_id = '%s'" % (self.session.db.table, Paramify(self.key))
              user_id = self.db.query(query_string)[0].user_id
              if user_id and not plain:
                  return user_id
              elif not user_id:
                  return False
              elif user_id and plain:
-                 q = ['SELECT username,email_address FROM %s WHERE user_id = %s' % (self.db.table, user_id)]
+                 q = ["SELECT username,email_address FROM %s WHERE user_id = '%s'" % (self.db.table, Paramify(user_id))]
                  row = self.db.query(q)[0]
                  key = row.username
                  cipher = Cipher(key)
@@ -328,13 +328,13 @@ class User(object):
         """
         q = ['SELECT %s FROM %s' % ('password', self.db.table),'']
         try:
-            q[1] = " WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this(self.get_id() ) ) )
+            q[1] = " WHERE %s = PASSWORD('%s')" % ('username', Paramify( hash_this(self.get_id() ) ) )
             return self.db.query(q)[0].password == val
         except:
             return False
 
     def update_password(self, new):
-        q = ['UPDATE %s SET %s=PASSWORD(%s)' % (self.db.table, 'password', Paramify(hash_this(new))),'']
+        q = ['UPDATE %s SET %s=PASSWORD(\"%s\")' % (self.db.table, 'password', Paramify(hash_this(new))),'']
         q[1] = "WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this( self.get_id() ) ) )
         self.db.query(q)
 
@@ -391,7 +391,7 @@ class Money(object):
         self.__db.update(self.__encrypt_values(account_info), "user_id", self.__user_id)
 
     def delete_account(self, col, val):
-        query_string = "DELETE FROM %s WHERE %s = \"%s\"" % (self.__db.table, col, val)
+        query_string = "DELETE FROM %s WHERE %s = '%s'" % (self.__db.table, col, Paramify(val))
         self.__db.query(query_string)
 
 class Debt_Account(Money):
