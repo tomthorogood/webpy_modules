@@ -34,7 +34,7 @@ class Database(object):
             q = Querify([q])
         else:
             q = Querify(q)
-        
+
         return self.connection.query(q)
     
     def populate_from(self, key, dictionary):
@@ -45,7 +45,7 @@ class Database(object):
         values = []
         for entry in dictionary:
             values.append(entry)
-        q = [append_with_commas('SELECT ', values, 'FROM ', False), self.table, ' WHERE ', key[0], '=', Paramify(key[1])]
+        q = [append_with_commas('SELECT ', values, ' FROM ', False), self.table, ' WHERE ', key[0], '=', Paramify(key[1])]
         result = self.query(q)
         if result:
             for row in result:
@@ -54,7 +54,7 @@ class Database(object):
         return dictionary
 
     def insert (self, data ):
-        q = ["INSERT INTO ", self.table]
+        q = ["INSERT INTO ", self.table, " "]
         columns = []
         values = []
         for key in data:
@@ -63,8 +63,8 @@ class Database(object):
                 values.append(Paramify(data[key]))
             else:
                 values.append('')
-        q.append( append_with_commas('', columns, ") VALUES (", False) )
-        q.append( append_with_commas(query_string, values, ")", True) )
+        q.append( append_with_commas('(', columns, ") VALUES (", False) )
+        q.append( append_with_commas('', values, ")", True) )
         self.query(q)
 
     def update(self, data, col_match, val_match, test=False):
@@ -212,7 +212,7 @@ class Session(object):
         q = "SELECT ping FROM %s ORDER BY ping DESC LIMIT 1" % self.db.table
         r = self.db.query(q)
         if r:
-            p = int(r[0].ping)
+            p = int(r[0].ping) + 1
         if p > 100:
             p = 1
             self.db.update({"ping" : p}, "session_id", self._id)
@@ -266,6 +266,7 @@ class User(object):
         self.session = Session()
         self.key = self.session.get_cookie()
         if self.key:
+            self.session.ping()
             return True
         else:
             return False
@@ -290,20 +291,37 @@ class User(object):
         else:
             self.error = "We're sorry, but you could not be added to the database. Please try again later."
 
-    def get_id (self, plain=False):
+    def get_id (self, plain=False, username=None):
          if self.check_login():
              query_string = "SELECT user_id FROM %s where session_id = '%s'" % (self.session.db.table, Paramify(self.key))
-             user_id = self.db.query(query_string)[0].user_id
-             if user_id and not plain:
+             try:
+                 user_id = self.db.query(query_string)[0].user_id
+             except IndexError:
+                 return None
+             if user_id and not plain and not username:
                  return user_id
-             elif not user_id:
+             elif not user_id and not username:
                  return False
+             elif not plain and username:
+                 q = ["SELECT user_id FROM %s WHERE username = PASSWORD('%s')" % (self.db.table, Paramify(hash_this(username)))]
+                 try:
+                     return self.db.query(q)[0].user_id
+                 except IndexError:
+                     return None
              elif user_id and plain:
                  q = ["SELECT username,email_address FROM %s WHERE user_id = '%s'" % (self.db.table, Paramify(user_id))]
-                 row = self.db.query(q)[0]
-                 key = row.username
-                 cipher = Cipher(key)
-                 return cipher.decrypt(row.email_address)
+                 try:
+                    row = self.db.query(q)[0]
+                    key = row.username
+                    cipher = Cipher(key)
+                    return cipher.decrypt(row.email_address)
+                 except IndexError:
+                    return None
+         elif username:
+             q = ["SELECT user_id FROM %s WHERE username = PASSWORD('%s')" % (self.db.table, Paramify(hash_this(username)))]
+             return self.db.query(q)[0].user_id
+         else:
+             return False
 
     def link_debt (self):
         self.debt = Debt_Account(self.get_id())
@@ -316,8 +334,7 @@ class User(object):
         Checks to see whether a username already exists in the database.
         """
         q = ["SELECT username FROM %s " % self.db.table, "WHERE username = PASSWORD('%s')" % Paramify(hash_this(val))]
-        r = self.db.query(q)
-        if not r:
+        if not self.db.query(q):
             return False
         else:
             return True
@@ -326,17 +343,24 @@ class User(object):
         """
         Checks to see whether the passed password matches that which is attached to the currently logged in user.
         """
+        k = "PASSWORD('%s')" % Paramify(hash_this(val))
+        z = ["SELECT %s" % k]
+        val = self.db.query(z)[0][k]
         q = ['SELECT %s FROM %s' % ('password', self.db.table),'']
+        q[1] = " WHERE %s = %s" % ('user_id', Paramify( self.get_id() ) )
         try:
-            q[1] = " WHERE %s = PASSWORD('%s')" % ('username', Paramify( hash_this(self.get_id() ) ) )
             return self.db.query(q)[0].password == val
         except:
             return False
 
     def update_password(self, new):
-        q = ['UPDATE %s SET %s=PASSWORD(\"%s\")' % (self.db.table, 'password', Paramify(hash_this(new))),'']
-        q[1] = "WHERE %s = PASSWORD(%s)" % ('username', Paramify( hash_this( self.get_id() ) ) )
-        self.db.query(q)
+        try:
+            q = ['UPDATE %s SET %s=PASSWORD(\"%s\")' % (self.db.table, 'password', Paramify(hash_this(new))),'']
+            q[1] = "WHERE %s = %s" % ('user_id', Paramify( self.get_id() ) )
+            self.db.query(q)
+            self.error = None
+        except:
+            self.error = "There was an error processing your request."
 
 class Money(object):
     def __init__(self, user_id, table):
