@@ -10,6 +10,7 @@ import random, string
 
 append_with_commas = formatting.append_with_commas  # Turns a list into "entry1, entry2, entry3" string
 hash_this = security.obfuscate.hash_this            # Performs one-way hashing on a string
+convert_to_tinyint = formatting.convert_to_tinyint  # Converts miscellaneous values to tinyints for mysql insertion
 Cipher = security.cipher.Cipher                     # Creates an instance of a PyCrypto AES module
 Querify = web.db.SQLQuery                           # Paramaterizes a query string
 Paramify = web.db.SQLParam                          # Paramterizes a query string value to maintain binary integrity
@@ -361,6 +362,16 @@ class User(object):
             self.error = None
         except:
             self.error = "There was an error processing your request."
+
+    def update_preferences(self, new):
+        try:
+            for preference in self.preferences:
+                self.preferences[preference] = convert_to_tinyint(new[preference])
+            self.db.update(self.preferences, "user_id", self.get_id())
+            self.error = None
+        except:
+            self.error = "There was an error processing your request."
+
 
 class Money(object):
     def __init__(self, user_id, table):
