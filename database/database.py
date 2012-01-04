@@ -366,7 +366,10 @@ class User(object):
     def update_preferences(self, new):
         try:
             for preference in self.preferences:
-                self.preferences[preference] = convert_to_tinyint(new[preference])
+                try:
+                    self.preferences[preference] = convert_to_tinyint(new[preference])
+                except KeyError: #If there's an error, default to the most private setting
+                    self.preferences[preference] = 0
             self.db.update(self.preferences, "user_id", self.get_id())
             self.error = None
         except:
