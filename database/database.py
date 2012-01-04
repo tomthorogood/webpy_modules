@@ -113,7 +113,7 @@ class Database(object):
                 else:
                     q[2] = Paramify(match[1])
             if param:
-                q[len(q)] = param
+                q[len(q)-1] = param
             if (len(q) > 1):
                 self.query(q)
         except UserWarning:
@@ -169,6 +169,8 @@ class Session(object):
         if new and user_id:
             self._id = self.generate_id(user_id)
             self.store_session(user_id)
+        elif new and not user_id:
+            self._id = self.get_cookie()
         elif not new and user_id:
             self._id = self.get_cookie()
             if not self._id:
@@ -220,12 +222,16 @@ class Session(object):
             self.cleanup()
         else:
             self.db.update({"ping" : p}, "session_id", self._id)
+            f = open('pingtest.txt', 'w')
+            pung = 'Attempted to ping session id %s with a value of %s' % (self._id, p)
+            f.write(pung)
+            f.close()
 
     def cleanup(self):
         """
         Cleans up the session database table. Called automatically every 100 pings, but can be called explicitly if necessary.
         """
-        param = "NOW() - last_activity) > %s" % self.length
+        param = "(NOW() - last_activity) > %s" % self.length
         self.db.delete(param=param)
 
 class User(object):
@@ -372,8 +378,10 @@ class User(object):
                     self.preferences[preference] = 0
             self.db.update(self.preferences, "user_id", self.get_id())
             self.error = None
+        except KeyError:
+            self.error = None
         except:
-            self.error = "There was an error processing your request."
+            self.error = "There was an error processing your request. Please try again later."
 
 
 class Money(object):
