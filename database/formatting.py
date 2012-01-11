@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def append_with_commas (prefix="", values=[], suffix="", quote=True):
+def append_with(char=",",prefix="", values=[], suffix="", quote=True):
     ret_str = prefix                #ret_str = "returned string"
     commas = len(values)-1          #number of commas allowed
     c = 0                           #number of commas inserted
@@ -10,10 +10,28 @@ def append_with_commas (prefix="", values=[], suffix="", quote=True):
         elif quote:
             ret_str += "\"%s\"" % value
         if c < commas:
-            ret_str += ", "
+            ret_str += "%s " % char
         c+= 1
     ret_str += suffix
     return ret_str
+
+
+def append_with_commas (prefix="", values=[], suffix="", quote=True):
+    return append_with(',' , prefix, values, suffix, quote)
+
+
+def convert_to_list (dictionary={}, join='=',quote=False):
+    """Converts a dictionary into a list."""
+    l = []
+    for key in dictionary:
+        entry = "%s%s"%(str(key), join)
+        if quote=='single':
+            entry += "\'%s\'" % dictionary[key]
+        elif quote=='double':
+            entry += "\"%s\"" % dictionary[key]
+        else:
+            entry += str(dictionary[key])
+        l.append(entry)
 
 def convert_to_tinyint (val):
     """
