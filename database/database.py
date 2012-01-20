@@ -23,7 +23,7 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
     def __init__(self, table, db='clearpoint_resolutions'):
-        self.connection = web.database(dbn='mysql', user='cpres', pw='allayallay', db=db)
+        self.connection = web.database(dbn='mysql', user='cpcal', pw='tikkitonga', db=db)
         self.table = table
 
     def query(self, q):
