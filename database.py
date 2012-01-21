@@ -330,12 +330,6 @@ class User(object):
          else:
              return False
 
-    def link_debt (self):
-        self.debt = Debt_Account(self.get_id())
-
-    def link_income(self):
-        self.income = Income_Source(self.get_id())
-
     def exists(self, val):
         """
         Checks to see whether a username already exists in the database.
@@ -382,85 +376,3 @@ class User(object):
             self.error = None
         except:
             self.error = "There was an error processing your request. Please try again later."
-
-
-class Money(object):
-    def __init__(self, user_id, table):
-        self.__user_id = user_id
-        self.__db = Database(table)
-        self.accounts = []
-        self.__schematic = {}
-
-    def __account_schematic (self, schematic):
-        self.__schematic = schematic
-
-    def __column_list(self):
-        a = []
-        if self.__schematic:
-            for entry in self.__schematic:
-                a.append(entry)
-        return a
-
-    def __float_values(self):
-        a = []
-        if self.__schematic:
-            for entry in self.__schematic:
-                if self.__schematic[entry] == "float":
-                    a.append(entry)
-        return a
-
-    def __encrypt_values(self, values):
-        cipher = Cipher(self.__user_id)
-        for value in values:
-            values[value] = cipher.encrypt(values[value])
-        return values
-
-    def get_accounts(self):
-        cipher = Cipher(self.__user_id)
-        search = Search(self.__db.table, "user_id", self.__user_id, self.__column_list())
-        search.run()
-        for result in search.result:
-            account = {}
-            for datum in result:
-                if datum not in self.__float_values():
-                    account[datum] = cipher.decrypt( result[datum] )
-                elif datum in self.__float_values():
-                    account[datum] = float( cipher.decrypt( result[datum] ) )
-            self.accounts.append(account)
-
-    def add_account(self, account):
-        account = self.__encrypt_values(account)
-        account['user_id'] = self.__account_schematic['user_id']
-        self.__db.insert(account)
-
-    def update_account(self, account_info):
-        self.__db.update(self.__encrypt_values(account_info), "user_id", self.__user_id)
-
-    def delete_account(self, col, val):
-        query_string = "DELETE FROM %s WHERE %s = '%s'" % (self.__db.table, col, Paramify(val))
-        self.__db.query(query_string)
-
-class Debt_Account(Money):
-    def __init__(self, user_id):
-        Money.__init__(user_id, "debt")
-        schematic = {
-                "account_name"          :   "string",
-                "account_balance"       :   "float",
-                "account_interest_rate" :   "float",
-                "account_min_payment"   :   "float",
-                "account_extra_payment" :   "float",
-                "account_id"            :   "int",
-                "user_id"               :   user_id
-                }
-        self.__account_schematic(schematic)
-
-class Income_Source(Money):
-    def __init__(self, user_id):
-        Money.__init__(user_id, "income")
-        schematic = {
-                "source_name"           :   "string",
-                "source_amount"         :   "float",
-                "source_savings"        :   "float",
-                "user_id"               :   "user_id"
-                }
-        self.__account_schematic(schematic)
