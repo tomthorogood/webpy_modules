@@ -22,8 +22,8 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
-    def __init__(self, table, db='clearpoint_resolutions'):
-        self.connection = web.database(dbn='mysql', user='cpcal', pw='tikkitonga', db=db)
+    def __init__(self, table, db='budget_calculator'):
+        self.connection = web.database(dbn='mysql', user='cpcalc', pw='tikkitonga', db=db)
         self.table = table
 
     def query(self, q):
@@ -268,6 +268,10 @@ class User(object):
             session.set_cookie()
         else:
             self.error = "Incorrect Login"
+
+    def key_request(self):
+        q = ["SELECT username FROM ", self.db.table, " WHERE user_id = ", Paramify(self.get_id())]
+        return self.db.query(q)[0].username
 
     def check_login (self):
         self.session = Session()
