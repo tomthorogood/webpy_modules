@@ -108,10 +108,13 @@ class Database(object):
                 if match[0] == match[1] and not force:
                     raise UserWarning #Prevents an accidental deletion of all entries in table. 
                 q[1] = "%s = " % match[0]
-                if match[1][0] == '*':
-                    q[2] = "PASSWORD(\"%s\")" % Paramify(match[1][1:])
-                else:
-                    q[2] = Paramify(match[1])
+                try:
+                    if match[1][0] == "*":
+                        q[2] = "PASSWORD(\"%s\")" % Paramify(match[1][1:])
+                    else:
+                        q[2] = Paramify(match[1])
+                except TypeError:
+                        q[2] = Paramify(match[1])
             if param:
                 q[len(q)-1] = param
             if (len(q) > 1):
