@@ -279,7 +279,7 @@ class User(object):
                     elif self.preferences[i] == 'False':
                         self.preferences[i] = False
 
-    def login (self, username, password):
+    def login (self, username=None, password=None, sensitive=false):
         """
         Chekcs the passed username and password against the database.
         Information should be sent into this method the same way it was passed into the add method.
@@ -295,7 +295,7 @@ class User(object):
         else:
             print user.error
         """
-        q = ["SELECT user_id FROM ", self.db.table, " WHERE username=PASSWORD(", Paramify(hash_this(username)), ") AND password=PASSWORD(", Paramify(hash_this(password)), ")"]
+        q = ["SELECT user_id FROM ", self.db.table, " WHERE username=PASSWORD(", Paramify(hash_this(username.lower())), ") AND password=PASSWORD(", Paramify(hash_this(password)), ")"]
         result = self.db.query(q)
         user_id = None
         if result:
