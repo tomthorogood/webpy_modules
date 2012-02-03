@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 
 def append_with_commas (prefix="", values=[], suffix="", quote=True):
+    """
+    strings a list of entries together, adding a comma after all except the last one.
+    A prefix and suffix can be defined to return a complete string.
+    prefix = "Hello, I like: " 
+    values = ["Apples", "Pears", "Bananas", "Ghost meat"]
+    suffix = " but not on Wednesday afternoons."
+    quote=False
+
+    will return:
+        "Hello, I like Apples, Pears, Bananas, Ghost meat but not on Wednesday afternoons."
+
+
+    """
     ret_str = prefix                #ret_str = "returned string"
     commas = len(values)-1          #number of commas allowed
     c = 0                           #number of commas inserted

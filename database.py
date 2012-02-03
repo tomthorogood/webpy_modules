@@ -37,6 +37,18 @@ class Database(object):
             q = Querify(q)
 
         return self.connection.query(q)
+
+    def unzip(self, data):
+        cols=[]
+        vals=[]
+        for key in data:
+            cols.append(key)
+            if data[key]:
+                vals.append(data[key])
+            else:
+                vals.append("")
+        return cols, vals
+
     
     def populate_from(self, key, dictionary):
         """
@@ -55,31 +67,23 @@ class Database(object):
         return dictionary
 
     def insert (self, data ):
+        """
+        Adds dictionary data into a table, where the data is in {column: value} format.
+        """
         q = ["INSERT INTO ", self.table, " "]
-        columns = []
-        values = []
-        for key in data:
-            columns.append(key)
-            if data[key]:
-                values.append(Paramify(data[key].replace('PERCENT', '\%')))
-            else:
-                values.append('')
+        cols, vals = self.unzip(data)
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
         q.append( append_with_commas('', values, ")", True) )
         self.query(q)
 
     def update(self, data, col_match, val_match, test=False):
-        query_list = []
-        q0 = "UPDATE %s SET " % self.table
-        query_list.append(q0)
-        cols=[]
-        vals=[]
-        for key in data:
-            cols.append(key)
-            if data[key]:
-                vals.append(data[key])
-            else:
-                vals.append("")
+        """
+        Updates a row.
+        Data should be in {column:value} format. col_match and val_match represent 'where col_match = val_match".
+        The test param simply prints out the query without actually querying the database. Useful for, well, testing.
+        """
+        query_list = ["UPDATE %s SET " % self.table]
+        cols,vals = self.unzip(data)
         i = 0
         while i < len(cols):
             query_list.append(cols[i]+'=')
@@ -123,6 +127,9 @@ class Database(object):
             print "You are trying to delete all entries in a table without explicitly forcing this! Try setting force=True if that's what you really want to do."
 
 
+#.....................................
+# DEPRECATED. TO BE REMOVED.
+#.....................................
 class Search(object):
     """A quick way of searching a database. The result will be stored as a list of dicts, each representing a row of data
     from the database, in {column : value} format."""
@@ -166,6 +173,11 @@ class Session(object):
             act like real sessions. 
     """
     def __init__(self, new = True, user_id = None, session_id = None, length=1200, test=False):
+        """
+        You can explicitly set most of this params for test cases. 
+        Setting new=False will not generate a new session in the database.
+        length determines the amount of time after which a session will be deactivated.
+        """
         self.debug = test
         self.db = Database('sessions')
         self._id = session_id
@@ -174,20 +186,30 @@ class Session(object):
         else:                           # and multiply the passed number by 60. Default is 20 minutes (1200 seconds) 
             self.length = length
         if new and user_id and not test:
+            #Typical behaviour. Generates a session ID and stores it in the database.
             self._id = self.generate_id(user_id)
             self.store_session(user_id)
         elif test and not new:
+            #This simply generates a session id.
             self._id = self.generate_id(user_id)
         elif new and not user_id and not test:
+            #If a user_id was not passed in, but a new session is expected, check to see if the user is already in the session table.
             self._id = self.get_cookie()
         elif not new and user_id and not test:
+            #Same as above, but raises an exception if a user is supposed to be logged in but has no cookie.
             self._id = self.get_cookie()
             if not self._id:
                 raise UserWarning
         elif not new and not user_id and not test:
+            #In any other case, set the id of the session to false and leave it at that.
             self._id = False
             
     def generate_id(self, user_id):
+        """
+        Generates a session ID based on the user ID.
+        Since user id's are all digits, it simply strings together random numbers and letters from the
+        user id, then hashes it.
+        """
         pre_hash = ""
         for num in range(user_id):
             pre_hash += random.choice(string.lowercase)
@@ -195,6 +217,9 @@ class Session(object):
         return hash_this(pre_hash)
 
     def store_session(self, user_id):
+        """
+        Stores a session in the database table.
+        """
         q = ['','','']
         q[0] = "INSERT INTO %s (session_id, user_id) VALUES (" % self.db.table
         q[1] = "\"%s\", '%s'" % ( Paramify(self._id), Paramify(user_id) )
@@ -202,9 +227,15 @@ class Session(object):
         self.db.query(q)
 
     def set_cookie(self):
+        """
+        Sets a cookie in the user's browser. The cookie will only last until the user closes their browser.
+        """
         web.setcookie('session_id', self._id)
 
     def get_cookie(self):
+        """
+        Attempts to retrieve a cookie from the user's browser.
+        """
         try:
             return web.cookies().session_id
         except:
@@ -231,10 +262,6 @@ class Session(object):
             self.cleanup()
         else:
             self.db.update({"ping" : p}, "session_id", self._id)
-            f = open('pingtest.txt', 'w')
-            pung = 'Attempted to ping session id %s with a value of %s' % (self._id, p)
-            f.write(pung)
-            f.close()
 
     def cleanup(self):
         """
@@ -255,6 +282,10 @@ class User(object):
     the test flag can be switched on to allow for debugging.
     """
     def __init__(self, preferences = {}, test=False):
+        """
+        Preferences should probably be deprecated.
+        Set test to true if you are running command line tests and don't want it to deal with cookies.
+        """
         self.db = Database('users')
         self.debug = test
         self.__define__ (preferences)
@@ -311,6 +342,9 @@ class User(object):
             self.error = "Incorrect Login"
 
     def key_request(self):
+        """
+        Retrieves the user's unique cryptographic key.
+        """
         q = ["SELECT username FROM ", self.db.table, " WHERE user_id = ", Paramify(self.get_id())]
         return self.db.query(q)[0].username
 
