@@ -54,4 +54,4 @@ class Cipher(object):
         Decrypts! Takes an encrypted binary string as an argument.
         Must be decrypted using the same string as a key that was used to encrypt it.
         """
-         return self._trim ( self._algorithm.decrypt(ciphertext) )
+        return self._trim ( self._algorithm.decrypt(ciphertext) )
