@@ -122,6 +122,7 @@ class Database(object):
         Adds dictionary data into a table, where the data is in {column: value} format.
         """
         q = ["INSERT INTO ", self.table, " "]
+<<<<<<< HEAD
         columns = []
         values = []
         for key in data:
@@ -130,6 +131,9 @@ class Database(object):
                 values.append(Paramify(str(data[key]).replace('PERCENT', '\%')))
             else:
                 values.append('')
+=======
+        cols, vals = self.unzip(data)
+>>>>>>> 26c9729c7459874740400ba346e435d475cce150
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
         q.append( append_with_commas('', values, ")", True) )
         self.query(q)
