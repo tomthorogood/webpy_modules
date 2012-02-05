@@ -20,6 +20,57 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 # ["SELECT foo FROM bar WHERE meat=", Paramify('steak')]
 
 
+class Time_Difference(object):
+    def __init__(self, sec_val,operator, count, period):
+        """
+        Takes as arguments a time in seconds, a textual operator, the number the time in secnods is being compared to, and the period type. 
+        Returns a boolean automatically.
+        Example:
+            over_a_month = Time_Difference(2419201, "greater than", 1, "month")
+            if over_a_month:
+                print "It's been over a month!"
+        """        
+        functions = {
+                "second"    :   self.second,
+                "minute"    :   self.minute,
+                "hour"      :   self.hour,
+                "day"       :   self.day,
+                "week"      :   self.week,
+                "month"     :   self.month,
+                "year"      :   self.year
+                }
+        self.result = functions[period](sec_val,operator, count)
+
+    def operations(self, num1, operator, num2):
+        if operator == "greater than":
+            return num1 > num2
+        elif operator == "less than":
+            return num1 < num2
+        elif operator == "equal to":
+            return num1 == num2
+        elif operator == "not equal to":
+            return num1 not num2
+    def second (self, seconds, operator, count):
+        return self.operations(seconds, operator, count)
+    
+    def minute (self, seconds, operator, count):
+        return self.operations((seconds/60),operator,count)
+    
+    def hour (self, seconds, operator, count):
+        return self.minute((seconds/60),operator,count)
+    
+    def day (self, seconds, operator, count):
+        return self.hour((seconds/24),operator,count)
+
+    def week (self, seconds, operator, count):
+        return self.day((seconds/7), operator, count)
+
+    def month (self, seconds, operator, count):
+        return self.week((seconds/4),operator,count)
+    
+    def year (self, seconds, operator, count):
+        return self.month((seconds/12), operator,count)
+
 class Database(object):
     """Uses a web.py database object to store database values for simpler querying."""
     def __init__(self, table, db='budget_calculator'):
@@ -75,6 +126,17 @@ class Database(object):
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
         q.append( append_with_commas('', values, ")", True) )
         self.query(q)
+
+    def time_passed(self, column, match, count, period):
+        """
+        Returns a boolean whether or not a certain amount of time has passed since a timestamp was set in the database.
+        example:
+            db.time_passed("last_login", ("user_id", 1), 1, "month")
+        """
+        q = ["SELECT NOW()-", column, " WHERE ", match[0], "=", Paramify(match[1])]
+        timestamp_diff = self.query(q)[0]
+        difference = Time_Difference(timestamp_diff, "greater than", count, period)
+        return difference.result
 
     def update(self, data, col_match, val_match, test=False):
         """
@@ -338,6 +400,7 @@ class User(object):
             else:
                 self.test_id = user_id
             self.error = None
+            self.month_elapsed = self.db.time_passed("last_login", ("user_id", self.get_id()), 1, "month") 
         else:
             self.error = "Incorrect Login"
 
@@ -362,6 +425,11 @@ class User(object):
             return True
         else:
             return False
+
+    def last_login(self):
+        """
+        Returns then number of days since the user last logged in.
+        """
 
     def add(self, username, password):
         """
