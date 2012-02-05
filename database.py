@@ -61,7 +61,7 @@ class Database(object):
         for key in data:
             columns.append(key)
             if data[key]:
-                values.append(Paramify(data[key].replace('PERCENT', '\%')))
+                values.append(Paramify(str(data[key]).replace('PERCENT', '\%')))
             else:
                 values.append('')
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
