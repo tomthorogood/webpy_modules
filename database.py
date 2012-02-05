@@ -49,7 +49,7 @@ class Time_Difference(object):
         elif operator == "equal to":
             return num1 == num2
         elif operator == "not equal to":
-            return num1 not num2
+            return num1 != num2
     def second (self, seconds, operator, count):
         return self.operations(seconds, operator, count)
     
