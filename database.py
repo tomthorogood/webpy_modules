@@ -6,8 +6,18 @@ import web
 import formatting, security
 
 #Native libraries
-import random, string
+import random, string,copy,time,json
 
+def debug(data):
+    """
+    Messy function for emailing the site admin in case of an emergency.
+    """
+    f = open('admin_log', 'a')
+    w = "\n"+time.asctime()+"\t"
+    try:
+        f.write(w+repr(data)+'\n')
+    except:
+        f.write(w+type(data)+'\n')
 append_with_commas = formatting.append_with_commas  # Turns a list into "entry1, entry2, entry3" string
 hash_this = security.obfuscate.hash_this            # Performs one-way hashing on a string
 convert_to_tinyint = formatting.convert_to_tinyint  # Converts miscellaneous values to tinyints for mysql insertion
@@ -86,6 +96,7 @@ class Database(object):
             q = Querify([q])
         else:
             q = Querify(q)
+        print repr(q)
 
         return self.connection.query(q)
 
@@ -140,9 +151,11 @@ class Database(object):
         example:
             db.time_passed("last_login", ("user_id", 1), 1, "month")
         """
-        q = ["SELECT NOW()-", column, " WHERE ", match[0], "=", Paramify(match[1])]
+        q = ["SELECT NOW()-", column, " FROM ", self.table, " WHERE ", match[0], "=", Paramify(match[1])]
+        debug(q)
         timestamp_diff = self.query(q)[0]
-        difference = Time_Difference(timestamp_diff, "greater than", count, period)
+        debug(copy.copy(timestamp_diff))
+        difference = Time_Difference(int(timestamp_diff['NOW()-last_login']), "greater than", count, period)
         return difference.result
 
     def update(self, data, col_match, val_match, test=False):
@@ -379,7 +392,7 @@ class User(object):
                     elif self.preferences[i] == 'False':
                         self.preferences[i] = False
 
-    def login (self, username=None, password=None, sensitive=false):
+    def login (self, username=None, password=None, sensitive=False):
         """
         Chekcs the passed username and password against the database.
         Information should be sent into this method the same way it was passed into the add method.
@@ -407,7 +420,8 @@ class User(object):
             else:
                 self.test_id = user_id
             self.error = None
-            self.month_elapsed = self.db.time_passed("last_login", ("user_id", self.get_id()), 1, "month") 
+            self.month_elapsed = self.db.time_passed("last_login", ("user_id", user_id), 1, "month") 
+            debug(self.month_elapsed)
         else:
             self.error = "Incorrect Login"
 
