@@ -371,6 +371,7 @@ class User(object):
         self.db = Database('users')
         self.debug = test
         self.__define__ (preferences)
+        self.__profile__ = [] 
     
     def __define__(self, prefs):
         """
@@ -519,6 +520,15 @@ class User(object):
             return self.db.query(q)[0].user_id
         else:
             return False
+
+    def decrypt_profile (self):
+        self.profile = {}
+        cipher = Cipher(self.key_request())
+        columns = append_with_commas("SELECT ", self.__profile__, " FROM ", False)
+        q = [columns, self.db.table, " WHERE user_id=", Paramify(self.get_id())]
+        result = self.db.query(q)[0]
+        for value in result:
+            self.profile[value] = cipher.decrypt(result[value])
 
     def exists(self, val):
         """
