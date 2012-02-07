@@ -101,14 +101,9 @@ class Database(object):
         return self.connection.query(q)
 
     def unzip(self, data):
-        cols=[]
-        vals=[]
-        for key in data:
-            cols.append(key)
-            if data[key]:
-                vals.append(data[key])
-            else:
-                vals.append("")
+        cols= data.keys()
+        vals= data.values()
+        
         return cols, vals
 
     
@@ -117,9 +112,7 @@ class Database(object):
         Populates a dictionary whose keys are columns in the database.
         The dictionary values are then set to the values in the database columns.
         """
-        values = []
-        for entry in dictionary:
-            values.append(entry)
+        values = dictionary.keys()
         q = [append_with_commas('SELECT ', values, ' FROM ', False), self.table, ' WHERE ', key[0], '=', Paramify(key[1])]
         result = self.query(q)
         if result:
@@ -133,14 +126,8 @@ class Database(object):
         Adds dictionary data into a table, where the data is in {column: value} format.
         """
         q = ["INSERT INTO ", self.table, " "]
-        columns = []
-        values = []
-        for key in data:
-            columns.append(key)
-            if data[key]:
-                values.append(Paramify(str(data[key]).replace('PERCENT', '\%')))
-            else:
-                values.append('')
+        columns = data.keys()
+        values = data.values()
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
         q.append( append_with_commas('', values, ")", True) )
         self.query(q)
@@ -207,35 +194,6 @@ class Database(object):
                 self.query(q)
         except UserWarning:
             print "You are trying to delete all entries in a table without explicitly forcing this! Try setting force=True if that's what you really want to do."
-
-
-#.....................................
-# DEPRECATED. TO BE REMOVED.
-#.....................................
-class Search(object):
-    """A quick way of searching a database. The result will be stored as a list of dicts, each representing a row of data
-    from the database, in {column : value} format."""
-    def __init__(self, table, column, value, search_keys):
-        if not isinstance(search_keys, (list, tuple)):
-            search_keys = [search_keys]
-        self.db = Database(table)
-        self.query = self.build_query(search_keys, column, value)
-        self.result = []
-
-    def build_query(self, search_keys, column, value):
-        values = []
-        for key in search_keys:
-            values.append(key)
-        value = value.replace("%20", " ") #A workaround for parsing a URL encoded value
-        query_string = append_with_commas("SELECT ", values, " FROM ", False)
-        query_string += self.db.table + " WHERE %s= '%s'" % (column, Paramify(value))
-        return query_string
-
-    def run(self):
-        result = self.db.query(self.query)
-        for row in result:
-            branch = Branch(row.branch_id)
-            self.result.append(branch.data)
 
 class Session(object):
     """
