@@ -101,10 +101,7 @@ class Database(object):
         return self.connection.query(q)
 
     def unzip(self, data):
-        cols= data.keys()
-        vals= data.values()
-        
-        return cols, vals
+        return data.keys(), data.values()
 
     
     def populate_from(self, key, dictionary):
@@ -112,7 +109,8 @@ class Database(object):
         Populates a dictionary whose keys are columns in the database.
         The dictionary values are then set to the values in the database columns.
         """
-        values = dictionary.keys()
+        values, trash = self.unzip(dictionary)
+        del trash
         q = [append_with_commas('SELECT ', values, ' FROM ', False), self.table, ' WHERE ', key[0], '=', Paramify(key[1])]
         result = self.query(q)
         if result:
@@ -126,8 +124,7 @@ class Database(object):
         Adds dictionary data into a table, where the data is in {column: value} format.
         """
         q = ["INSERT INTO ", self.table, " "]
-        columns = data.keys()
-        values = data.values()
+        columns, values = self.unzip(data)
         q.append( append_with_commas('(', columns, ") VALUES (", False) )
         q.append( append_with_commas('', values, ")", True) )
         self.query(q)
@@ -487,6 +484,16 @@ class User(object):
         result = self.db.query(q)[0]
         for value in result:
             self.profile[value] = cipher.decrypt(result[value])
+
+    def encrypt_profile (self, data):
+        self.decrypt_profile()
+        cipher = Cipher(self.key_request())
+        for key in self.profile:
+            value = data[key]
+            if value != data[key]:
+                self.profile[key] = value
+            self.profile[key] = cipher.encrypt(self.profile[key])
+        self.db.update(self.profile, "user_id", self.get_id())
 
     def exists(self, val):
         """

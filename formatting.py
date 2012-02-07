@@ -14,20 +14,10 @@ def append_with_commas (prefix="", values=[], suffix="", quote=True):
 
 
     """
-    ret_str = prefix                #ret_str = "returned string"
-    commas = len(values)-1          #number of commas allowed
-    c = 0                           #number of commas inserted
-    for value in values:
-        if not quote:
-            ret_str += "%s" % value
-        elif quote:
-            ret_str += "\"%s\"" % value
-        if c < commas:
-            ret_str += ", "
-        c+= 1
-    ret_str += suffix
-    return ret_str
-
+    if quote:
+        q = "\""
+        return prefix+q+"\", \"".join(values)+q+suffix 
+    return prefix+", ".join(values)+suffix
 def convert_to_tinyint (val):
     """
     Checks a value against the true/false table below and converts to 1/0 for use in a TINYINT column.
@@ -46,3 +36,9 @@ def convert_to_tinyint (val):
         return 0
     else:
         raise KeyError
+
+def unzip (dictionary):
+    """
+    Separates a dictionary into two lists.
+    """
+    return dictionary.keys(), dictionary.values()
