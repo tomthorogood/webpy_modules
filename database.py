@@ -30,6 +30,12 @@ Paramify = web.db.SQLParam                          # Paramterizes a query strin
 # ["SELECT foo FROM bar WHERE meat=", Paramify('steak')]
 
 
+class Query(object):
+    def __init__(self):
+        pass
+    def _update (self):
+        pass
+
 class Time_Difference(object):
     def __init__(self, sec_val,operator, count, period):
         """
