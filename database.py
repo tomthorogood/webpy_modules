@@ -490,7 +490,7 @@ class User(object):
         cipher = Cipher(self.key_request())
         for key in self.profile:
             value = data[key]
-            if value != data[key]:
+            if value != self.profile[key]:
                 self.profile[key] = value
             self.profile[key] = cipher.encrypt(self.profile[key])
         self.db.update(self.profile, "user_id", self.get_id())
