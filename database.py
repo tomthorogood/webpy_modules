@@ -532,6 +532,9 @@ class User(object):
             self.error = "There was an error processing your request."
     
     def update_profile(self, new):
+        cipher = Cipher(self.key_request())
+        for entry in new:
+            new[entry] = cipher.encrypt(new[entry])
         self.db.update(new, 'user_id', self.get_id())
 
     def update_preferences(self, new):
