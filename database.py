@@ -136,9 +136,7 @@ class Database(object):
             db.time_passed("last_login", ("user_id", 1), 1, "month")
         """
         q = ["SELECT NOW()-", column, " FROM ", self.table, " WHERE ", match[0], "=", Paramify(match[1])]
-        debug(q)
         timestamp_diff = self.query(q)[0]
-        debug(copy.copy(timestamp_diff))
         difference = Time_Difference(int(timestamp_diff['NOW()-last_login']), "greater than", count, period)
         return difference.result
 
