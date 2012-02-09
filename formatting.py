@@ -14,6 +14,7 @@ def append_with_commas (prefix="", values=[], suffix="", quote=True):
 
 
     """
+    values = [str(val) for val in values]
     if quote:
         q = "\""
         return prefix+q+"\", \"".join(values)+q+suffix 
