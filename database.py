@@ -530,6 +530,9 @@ class User(object):
             self.error = None
         except:
             self.error = "There was an error processing your request."
+    
+    def update_profile(self, new):
+        self.db.update(new, 'user_id', self.get_id())
 
     def update_preferences(self, new):
         """
