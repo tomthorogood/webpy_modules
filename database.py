@@ -64,21 +64,27 @@ class Time_Difference(object):
         return self.operations(seconds, operator, count)
     
     def minute (self, seconds, operator, count):
+        count *= 60
         return self.operations((seconds/60),operator,count)
     
     def hour (self, seconds, operator, count):
+        count *= 60
         return self.minute((seconds/60),operator,count)
     
     def day (self, seconds, operator, count):
+        count *= 24
         return self.hour((seconds/24),operator,count)
 
     def week (self, seconds, operator, count):
+        count*= 7
         return self.day((seconds/7), operator, count)
 
     def month (self, seconds, operator, count):
+        count *= 4
         return self.week((seconds/4),operator,count)
-    
+        
     def year (self, seconds, operator, count):
+        count *= 12
         return self.month((seconds/12), operator,count)
 
 class Database(object):
@@ -138,6 +144,8 @@ class Database(object):
         q = ["SELECT NOW()-", column, " FROM ", self.table, " WHERE ", match[0], "=", Paramify(match[1])]
         timestamp_diff = self.query(q)[0]
         difference = Time_Difference(int(timestamp_diff['NOW()-last_login']), "greater than", count, period)
+        debmsg = timestamp_diff, " is greater than ", count, " ", period
+        debug(debmsg)
         return difference.result
 
     def update(self, data, col_match, val_match, test=False):
