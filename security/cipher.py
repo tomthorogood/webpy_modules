@@ -35,10 +35,13 @@ class Cipher(object):
         """
         Trims whitespace from a decrypted string.
         """
-        temp = string
-        while string[len(temp)-1] == " ":
-            temp = string[:len(temp)-1]
-        return temp.split(" ")[0]
+        try:
+            temp = string
+            while string[len(temp)-1] == " ":
+                temp = string[:len(temp)-1]
+            return temp.split(" ")[0]
+        except TypeError:
+            return string
 
     def encrypt (self, plaintext):
         """

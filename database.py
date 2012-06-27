@@ -145,7 +145,6 @@ class Database(object):
         timestamp_diff = self.query(q)[0]
         difference = Time_Difference(int(timestamp_diff['NOW()-last_login']), "greater than", count, period)
         debmsg = timestamp_diff, " is greater than ", count, " ", period
-        debug(debmsg)
         return difference.result
 
     def update(self, data, col_match, val_match, test=False):
@@ -383,7 +382,6 @@ class User(object):
                 self.test_id = user_id
             self.error = None
             self.month_elapsed = self.db.time_passed("last_login", ("user_id", user_id), 1, "month") 
-            debug(self.month_elapsed)
         else:
             self.error = "Incorrect Login"
 
@@ -489,15 +487,21 @@ class User(object):
         q = [columns, self.db.table, " WHERE user_id=", Paramify(self.get_id())]
         result = self.db.query(q)[0]
         for value in result:
-            self.profile[value] = cipher.decrypt(result[value])
+            if result[value] is not None:
+                self.profile[value] = cipher.decrypt(result[value])
+            else:
+                self.profile[value] = " "
 
     def encrypt_profile (self, data):
         self.decrypt_profile()
         cipher = Cipher(self.key_request())
         for key in self.profile:
-            value = data[key]
-            if value != self.profile[key]:
-                self.profile[key] = value
+            try:
+                value = data[key]
+                if value != self.profile[key]:
+                    self.profile[key] = value
+            except KeyError:
+                pass
             self.profile[key] = cipher.encrypt(self.profile[key])
         self.db.update(self.profile, "user_id", self.get_id())
 
